@@ -274,7 +274,7 @@ SHEET_NAME = "Quality_April_26"
 
 TRAINER_SHEETS = {
     "Trainer 1": "1xZuOsdeyY_3q30m7RkJPTEbs5uJZJt7kFtCbAM_0KuI",
-    "Trainer 2": "",
+    "Trainer 2": "1ZmFeO3Qw_9U0RYatrN24EgyFLcn8jnXxf7MyhdaFxkU",
     "Trainer 3": "",
     "Trainer 4": "",
     "Trainer 5": "",
