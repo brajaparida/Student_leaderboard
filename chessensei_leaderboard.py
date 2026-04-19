@@ -326,7 +326,7 @@ SHEET_NAME = "Quality_April_26"
 
 TRAINER_SHEETS = {
     "Sheet 1": "1xZuOsdeyY_3q30m7RkJPTEbs5uJZJt7kFtCbAM_0KuI",
-    "Sheet 2": "",   # ← paste Sheet ID or leave blank
+    "Sheet 2": "1ZmFeO3Qw_9U0RYatrN24EgyFLcn8jnXxf7MyhdaFxkU",   # ← paste Sheet ID or leave blank
     "Sheet 3": "",
     "Sheet 4": "",
     "Sheet 5": "",
