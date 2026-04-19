@@ -4,7 +4,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 import time
 import json
-#changes
+
 # ─────────────────────────────────────────────
 # PAGE CONFIG
 # ─────────────────────────────────────────────
@@ -291,7 +291,7 @@ SHEET_NAME = "Quality_April_26"
 
 TRAINER_SHEETS = {
     "Trainer 1": "1xZuOsdeyY_3q30m7RkJPTEbs5uJZJt7kFtCbAM_0KuI",  # ← replace
-    "Trainer 2": "1ZmFeO3Qw_9U0RYatrN24EgyFLcn8jnXxf7MyhdaFxkU",   # ← paste Sheet ID or leave blank to skip
+    "Trainer 2": "",   # ← paste Sheet ID or leave blank to skip
     "Trainer 3": "",
     "Trainer 4": "",
     "Trainer 5": "",
@@ -317,17 +317,19 @@ SCOPES = [
 
 def get_gspread_client():
     """
-    Two ways to authenticate:
-    Option A (Streamlit Cloud): store JSON in st.secrets["gcp_service_account"]
-    Option B (Local):           point SERVICE_ACCOUNT_FILE to your JSON file path
+    Loads service account from Streamlit secrets as raw JSON string.
+    Paste the full JSON in secrets under [gcp_service_account] json_key = '''...'''
+    Falls back to local service_account.json for local testing.
     """
     try:
-        # ── Option A: Streamlit secrets (use this for Streamlit Cloud) ──
-        creds_dict = st.secrets["gcp_service_account"]
+        # ── Streamlit Cloud: read raw JSON string from secrets ──
+        import json
+        json_str = st.secrets["gcp_service_account"]["json_key"]
+        creds_dict = json.loads(json_str)
         creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
     except Exception:
-        # ── Option B: Local JSON file ──
-        SERVICE_ACCOUNT_FILE = "service_account.json"  # ← put file in same folder
+        # ── Local fallback: read JSON file directly ──
+        SERVICE_ACCOUNT_FILE = "service_account.json"
         creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
     return gspread.authorize(creds)
 
