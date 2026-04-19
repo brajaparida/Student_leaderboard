@@ -1,316 +1,619 @@
 import streamlit as st
 import pandas as pd
+import gspread
+from google.oauth2.service_account import Credentials
 import time
+import json
 
 # ─────────────────────────────────────────────
 # PAGE CONFIG
 # ─────────────────────────────────────────────
 st.set_page_config(
-    page_title="ChessSensei Leaderboard",
+    page_title="Chessensei Student Leaderboard",
     page_icon="♟",
     layout="wide",
 )
 
 # ─────────────────────────────────────────────
-# CUSTOM CSS
+# CUSTOM CSS + ANIMATIONS
 # ─────────────────────────────────────────────
 st.markdown("""
 <style>
     #MainMenu, footer, header { visibility: hidden; }
-    .stApp { background-color: #f5f5f5; }
+    .stApp { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e); min-height: 100vh; }
 
+    /* ── Floating stars animation ── */
+    .stars-container {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        pointer-events: none;
+        z-index: 0;
+        overflow: hidden;
+    }
+    .star {
+        position: absolute;
+        background: white;
+        border-radius: 50%;
+        animation: floatStar linear infinite;
+        opacity: 0;
+    }
+    @keyframes floatStar {
+        0%   { transform: translateY(100vh) scale(0); opacity: 0; }
+        10%  { opacity: 1; }
+        90%  { opacity: 0.8; }
+        100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+    }
+    .glitter {
+        position: absolute;
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        animation: glitterAnim ease-in-out infinite;
+        opacity: 0;
+    }
+    @keyframes glitterAnim {
+        0%,100% { opacity: 0; transform: scale(0) rotate(0deg); }
+        50%      { opacity: 1; transform: scale(1.5) rotate(180deg); }
+    }
+
+    /* ── Title ── */
     .main-title {
         text-align: center;
-        font-size: 2.4rem;
-        font-weight: 800;
-        color: #1a1a2e;
+        font-size: 2.6rem;
+        font-weight: 900;
+        background: linear-gradient(90deg, #FFD700, #FFA500, #FFD700);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
         letter-spacing: -1px;
         margin-bottom: 0;
+        text-shadow: none;
+        animation: shimmer 3s ease-in-out infinite;
+    }
+    @keyframes shimmer {
+        0%,100% { filter: brightness(1); }
+        50%      { filter: brightness(1.4); }
     }
     .main-sub {
         text-align: center;
         font-size: 0.95rem;
-        color: #6c757d;
+        color: #a0aec0;
         margin-bottom: 1.5rem;
     }
     .live-badge {
         display: inline-block;
-        background: #dcfce7;
-        color: #16a34a;
+        background: rgba(34,197,94,0.2);
+        color: #22c55e;
         font-size: 0.75rem;
-        font-weight: 600;
-        padding: 3px 10px;
+        font-weight: 700;
+        padding: 3px 12px;
         border-radius: 20px;
-        letter-spacing: 0.5px;
+        border: 1px solid #22c55e;
+        letter-spacing: 1px;
+        animation: pulse 2s infinite;
     }
-    .podium-card {
-        background: white;
-        border-radius: 16px;
-        padding: 1.2rem;
-        text-align: center;
-        border: 1px solid #e9ecef;
-        height: 100%;
+    @keyframes pulse {
+        0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
+        50%      { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
     }
-    .podium-card.gold   { border-top: 4px solid #f59e0b; }
-    .podium-card.silver { border-top: 4px solid #9ca3af; }
-    .podium-card.bronze { border-top: 4px solid #cd7c2f; }
-    .podium-name  { font-size: 1rem; font-weight: 700; color: #1a1a2e; margin: 0.4rem 0 0.1rem; }
-    .podium-score { font-size: 2rem; font-weight: 800; }
-    .podium-level { font-size: 0.75rem; color: #6c757d; background: #f3f4f6;
-                    border-radius: 8px; padding: 2px 8px; display: inline-block; }
-    .podium-sub   { font-size: 0.78rem; color: #6c757d; margin-top: 0.3rem; }
+
+    /* ── Metric cards ── */
     .metric-box {
-        background: white;
-        border-radius: 12px;
+        background: rgba(255,255,255,0.07);
+        border-radius: 14px;
         padding: 1rem 1.2rem;
-        border: 1px solid #e9ecef;
+        border: 1px solid rgba(255,255,255,0.12);
         text-align: center;
+        backdrop-filter: blur(10px);
     }
-    .metric-label { font-size: 0.72rem; color: #6c757d; font-weight: 600;
-                    text-transform: uppercase; letter-spacing: 0.5px; }
-    .metric-value { font-size: 1.8rem; font-weight: 800; color: #1a1a2e; }
+    .metric-label { font-size: 0.72rem; color: #a0aec0; font-weight: 600;
+                    text-transform: uppercase; letter-spacing: 0.8px; }
+    .metric-value { font-size: 1.9rem; font-weight: 800; color: #FFD700; }
+
+    /* ── Podium ── */
+    .podium-card {
+        background: rgba(255,255,255,0.07);
+        border-radius: 18px;
+        padding: 1.4rem 1rem;
+        text-align: center;
+        border: 1px solid rgba(255,255,255,0.12);
+        backdrop-filter: blur(10px);
+        transition: transform 0.2s;
+    }
+    .podium-card:hover { transform: translateY(-4px); }
+    .podium-card.gold   { border-top: 4px solid #FFD700;
+                          box-shadow: 0 0 20px rgba(255,215,0,0.3); }
+    .podium-card.silver { border-top: 4px solid #C0C0C0;
+                          box-shadow: 0 0 20px rgba(192,192,192,0.2); }
+    .podium-card.bronze { border-top: 4px solid #CD7F32;
+                          box-shadow: 0 0 20px rgba(205,127,50,0.2); }
+    .podium-name  { font-size: 1rem; font-weight: 700; color: #f7fafc;
+                    margin: 0.5rem 0 0.2rem; }
+    .podium-score { font-size: 2.2rem; font-weight: 900; }
+    .podium-trainer { font-size: 0.75rem; padding: 2px 10px; border-radius: 10px;
+                      display: inline-block; margin-top: 4px;
+                      background: rgba(255,255,255,0.1); color: #e2e8f0; }
+    .podium-sub   { font-size: 0.76rem; color: #a0aec0; margin-top: 0.4rem; }
+
+    /* ── Leaderboard rows ── */
+    .lb-header-row {
+        display: grid;
+        grid-template-columns: 50px 1fr 80px 100px 80px 80px 80px;
+        gap: 8px;
+        padding: 0 1rem 6px;
+        font-size: 0.7rem;
+        color: #718096;
+        font-weight: 700;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        margin-bottom: 8px;
+    }
+    .lb-row {
+        display: grid;
+        grid-template-columns: 50px 1fr 80px 100px 80px 80px 80px;
+        gap: 8px;
+        align-items: center;
+        background: rgba(255,255,255,0.05);
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        margin-bottom: 7px;
+        border: 1px solid rgba(255,255,255,0.07);
+        transition: background 0.2s, transform 0.15s;
+        animation: fadeIn 0.4s ease forwards;
+    }
+    .lb-row:hover {
+        background: rgba(255,255,255,0.1);
+        transform: translateX(4px);
+        border-color: rgba(255,215,0,0.3);
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .rank-num { font-size: 1rem; font-weight: 800; color: #718096;
+                text-align: center; }
+    .player-name { font-size: 0.95rem; font-weight: 700; color: #f7fafc; }
+    .trainer-tag {
+        font-size: 0.68rem;
+        padding: 1px 8px;
+        border-radius: 8px;
+        font-weight: 600;
+        display: inline-block;
+        margin-top: 2px;
+    }
+    .score-pill {
+        border-radius: 20px;
+        padding: 3px 12px;
+        font-size: 0.85rem;
+        font-weight: 800;
+        display: inline-block;
+        text-align: center;
+        min-width: 58px;
+    }
+    .score-green { background: rgba(22,163,74,0.25);  color: #4ade80;
+                   border: 1px solid rgba(22,163,74,0.4); }
+    .score-amber { background: rgba(217,119,6,0.25);  color: #fbbf24;
+                   border: 1px solid rgba(217,119,6,0.4); }
+    .score-red   { background: rgba(220,38,38,0.25);  color: #f87171;
+                   border: 1px solid rgba(220,38,38,0.4); }
+    .sub-score   { font-size: 0.82rem; font-weight: 600; color: #a0aec0; }
+
+    /* ── Trainer leaderboard ── */
+    .trainer-card {
+        background: rgba(255,255,255,0.06);
+        border-radius: 14px;
+        padding: 1rem 1.2rem;
+        border: 1px solid rgba(255,255,255,0.1);
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: transform 0.15s;
+    }
+    .trainer-card:hover { transform: translateX(4px); }
+    .trainer-rank { font-size: 1.5rem; min-width: 36px; text-align: center; }
+    .trainer-name { font-size: 0.95rem; font-weight: 700; color: #f7fafc; flex: 1; }
+    .trainer-meta { font-size: 0.75rem; color: #a0aec0; }
+    .trainer-score-pill {
+        background: rgba(255,215,0,0.15);
+        color: #FFD700;
+        border: 1px solid rgba(255,215,0,0.3);
+        border-radius: 20px;
+        padding: 4px 14px;
+        font-size: 0.88rem;
+        font-weight: 800;
+    }
+
+    /* section headers */
+    .section-title {
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: #f7fafc;
+        margin: 1.5rem 0 0.8rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .section-title::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: rgba(255,255,255,0.1);
+    }
 </style>
+
+<!-- Floating stars -->
+<div class="stars-container" id="starsContainer"></div>
+
+<script>
+(function() {
+    const container = document.getElementById('starsContainer');
+    if (!container) return;
+    const colors = ['#FFD700','#FFA500','#ffffff','#87CEEB','#DDA0DD','#98FB98'];
+    for (let i = 0; i < 40; i++) {
+        const el = document.createElement('div');
+        const isGlitter = Math.random() > 0.6;
+        el.className = isGlitter ? 'glitter' : 'star';
+        const size = Math.random() * (isGlitter ? 6 : 3) + 1;
+        el.style.cssText = `
+            left: ${Math.random()*100}%;
+            width: ${size}px; height: ${size}px;
+            animation-duration: ${Math.random()*10+6}s;
+            animation-delay: ${Math.random()*8}s;
+            background: ${colors[Math.floor(Math.random()*colors.length)]};
+        `;
+        container.appendChild(el);
+    }
+})();
+</script>
 """, unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────
-# CONFIG — update SHEET_ID if sheet changes
+# TRAINER COLOUR MAP (7 trainers)
 # ─────────────────────────────────────────────
-SHEET_ID   = "1xZuOsdeyY_3q30m7RkJPTEbs5uJZJt7kFtCbAM_0KuI"
-SHEET_NAME = "Testing"   # exact tab name
+TRAINER_COLORS = {
+    0: ("rgba(99,102,241,0.25)",  "#818cf8"),
+    1: ("rgba(236,72,153,0.25)",  "#f472b6"),
+    2: ("rgba(20,184,166,0.25)",  "#2dd4bf"),
+    3: ("rgba(245,158,11,0.25)",  "#fbbf24"),
+    4: ("rgba(239,68,68,0.25)",   "#f87171"),
+    5: ("rgba(34,197,94,0.25)",   "#4ade80"),
+    6: ("rgba(168,85,247,0.25)",  "#c084fc"),
+}
 
-# Max possible score per week for each category — adjust if needed
+
+# ─────────────────────────────────────────────
+# CONFIG — paste your 7 sheet IDs here
+# Leave blank ("") to skip that trainer
+# ─────────────────────────────────────────────
+SHEET_NAME = "Quality_April_26"
+
+TRAINER_SHEETS = {
+    "Trainer 1": "1xZuOsdeyY_3q30m7RkJPTEbs5uJZJt7kFtCbAM_0KuI",  # ← replace
+    "Trainer 2": "",   # ← paste Sheet ID or leave blank to skip
+    "Trainer 3": "",
+    "Trainer 4": "",
+    "Trainer 5": "",
+    "Trainer 6": "",
+    "Trainer 7": "",
+}
+
+# Max score per week per category
 PUZZLE_MAX  = 5
 TOURNEY_MAX = 5
 HW_MAX      = 5
 
 
 # ─────────────────────────────────────────────
-# DATA LOADER — cached 30s for real-time feel
+# AUTH — service account
+# Put your service account JSON in secrets or
+# as a file path below
+# ─────────────────────────────────────────────
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets.readonly",
+    "https://www.googleapis.com/auth/drive.readonly",
+]
+
+def get_gspread_client():
+    """
+    Two ways to authenticate:
+    Option A (Streamlit Cloud): store JSON in st.secrets["gcp_service_account"]
+    Option B (Local):           point SERVICE_ACCOUNT_FILE to your JSON file path
+    """
+    try:
+        # ── Option A: Streamlit secrets (use this for Streamlit Cloud) ──
+        creds_dict = st.secrets["gcp_service_account"]
+        creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+    except Exception:
+        # ── Option B: Local JSON file ──
+        SERVICE_ACCOUNT_FILE = "service_account.json"  # ← put file in same folder
+        creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    return gspread.authorize(creds)
+
+
+# ─────────────────────────────────────────────
+# DATA LOADER
 # ─────────────────────────────────────────────
 @st.cache_data(ttl=30)
-def load_data():
-    url = (
-        f"https://docs.google.com/spreadsheets/d/{SHEET_ID}"
-        f"/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
-    )
-    df = pd.read_csv(url)
+def load_all_data():
+    try:
+        client = get_gspread_client()
+    except Exception as e:
+        st.error(f"❌ Authentication failed: {e}")
+        st.stop()
 
-    cols_needed = [
-        "Student_Name", "Student_ID", "Level",
-        "Total_Scheduled", "Total_Completed",
-        "P_W1", "P_W2", "P_W3", "P_W4",
-        "T_W1", "T_W2", "T_W3", "T_W4",
-        "H_W1", "H_W2", "H_W3", "H_W4",
-    ]
-    df = df[cols_needed].copy()
-    df = df[df["Student_Name"].notna() & (df["Student_Name"].str.strip() != "")]
-    df = df.reset_index(drop=True)
+    all_dfs = []
 
-    score_cols = [c for c in cols_needed if c not in ["Student_Name", "Student_ID", "Level"]]
-    for col in score_cols:
-        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+    for idx, (trainer_name, sheet_id) in enumerate(TRAINER_SHEETS.items()):
+        if not sheet_id.strip():
+            continue  # skip empty entries
 
-    # ── Score calculation ──
-    df["Attendance"]    = (df["Total_Completed"] / df["Total_Scheduled"] * 100).round(1)
-    df["Puzzle_Score"]  = (df[["P_W1","P_W2","P_W3","P_W4"]].mean(axis=1) / PUZZLE_MAX  * 100).round(1)
-    df["Tourney_Score"] = (df[["T_W1","T_W2","T_W3","T_W4"]].mean(axis=1) / TOURNEY_MAX * 100).round(1)
-    df["HW_Score"]      = (df[["H_W1","H_W2","H_W3","H_W4"]].mean(axis=1) / HW_MAX      * 100).round(1)
+        try:
+            sh        = client.open_by_key(sheet_id)
+            worksheet = sh.worksheet(SHEET_NAME)
+            data      = worksheet.get_all_records()
+            df        = pd.DataFrame(data)
 
-    # Equal weight — 25% each
-    df["Total_Score"] = (
-        df["Attendance"]    * 0.25 +
-        df["Puzzle_Score"]  * 0.25 +
-        df["Tourney_Score"] * 0.25 +
-        df["HW_Score"]      * 0.25
+            if df.empty:
+                continue
+
+            # ── Ensure required columns exist ──
+            required = [
+                "Student_Name", "Student_ID", "Level",
+                "Total_Scheduled", "Total_Completed",
+                "P_W1","P_W2","P_W3","P_W4",
+                "T_W1","T_W2","T_W3","T_W4",
+                "H_W1","H_W2","H_W3","H_W4",
+            ]
+            missing = [c for c in required if c not in df.columns]
+            if missing:
+                st.warning(f"⚠️ {trainer_name}: missing columns {missing} — skipped")
+                continue
+
+            df = df[required].copy()
+            df = df[df["Student_Name"].notna() & (df["Student_Name"].str.strip() != "")]
+
+            # Add Trainer_Name column
+            # Use sheet's own Trainer_Name col if present, else use the key name
+            df["Trainer_Name"] = trainer_name
+            df["Trainer_Color_Idx"] = idx
+
+            # Numeric conversion
+            num_cols = [c for c in required if c not in ["Student_Name","Student_ID","Level"]]
+            for col in num_cols:
+                df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+
+            all_dfs.append(df)
+
+        except gspread.exceptions.WorksheetNotFound:
+            st.warning(f"⚠️ {trainer_name}: sheet '{SHEET_NAME}' not found — skipped")
+        except Exception as e:
+            st.warning(f"⚠️ {trainer_name}: error loading data ({e}) — skipped")
+
+    if not all_dfs:
+        st.error("❌ No data loaded from any trainer sheet. Check sheet IDs and permissions.")
+        st.stop()
+
+    df_all = pd.concat(all_dfs, ignore_index=True)
+
+    # ── Score calculations ──
+    df_all["Attendance"]    = (df_all["Total_Completed"] / df_all["Total_Scheduled"] * 100).round(1)
+    df_all["Puzzle_Score"]  = (df_all[["P_W1","P_W2","P_W3","P_W4"]].mean(axis=1) / PUZZLE_MAX  * 100).round(1)
+    df_all["Tourney_Score"] = (df_all[["T_W1","T_W2","T_W3","T_W4"]].mean(axis=1) / TOURNEY_MAX * 100).round(1)
+    df_all["HW_Score"]      = (df_all[["H_W1","H_W2","H_W3","H_W4"]].mean(axis=1) / HW_MAX      * 100).round(1)
+
+    df_all["Total_Score"] = (
+        df_all["Attendance"]    * 0.25 +
+        df_all["Puzzle_Score"]  * 0.25 +
+        df_all["Tourney_Score"] * 0.25 +
+        df_all["HW_Score"]      * 0.25
     ).round(1)
 
-    df = df.sort_values("Total_Score", ascending=False).reset_index(drop=True)
-    df["Rank"] = df.index + 1
-    return df
+    df_all = df_all.sort_values("Total_Score", ascending=False).reset_index(drop=True)
+    df_all["Rank"] = df_all.index + 1
+
+    return df_all
 
 
 # ─────────────────────────────────────────────
 # HELPERS
 # ─────────────────────────────────────────────
 def medal(rank):
-    return {1: "🥇", 2: "🥈", 3: "🥉"}.get(rank, "")
+    return {1:"🥇", 2:"🥈", 3:"🥉"}.get(rank, "")
 
 def podium_cls(rank):
-    return {1: "gold", 2: "silver", 3: "bronze"}.get(rank, "")
+    return {1:"gold", 2:"silver", 3:"bronze"}.get(rank, "")
 
-def score_color(s):
-    if s >= 80: return "#16a34a"
-    if s >= 60: return "#d97706"
-    return "#dc2626"
+def score_cls(s):
+    if s >= 80: return "score-green"
+    if s >= 60: return "score-amber"
+    return "score-red"
+
+def trainer_tag_html(trainer_name, color_idx):
+    bg, fg = TRAINER_COLORS.get(color_idx % 7, ("rgba(255,255,255,0.1)", "#e2e8f0"))
+    return (f'<span class="trainer-tag" style="background:{bg};color:{fg};'
+            f'border:1px solid {fg}40">{trainer_name}</span>')
 
 
 # ─────────────────────────────────────────────
 # HEADER
 # ─────────────────────────────────────────────
-st.markdown('<div class="main-title">♟ ChessSensei Leaderboard</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-title">♟ Chessensei Student Leaderboard</div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="main-sub"><span class="live-badge">● LIVE</span>'
-    '&nbsp;&nbsp;Auto-refreshes every 30 seconds</div>',
+    '<div class="main-sub">'
+    '<span class="live-badge">● LIVE</span>'
+    '&nbsp;&nbsp;Auto-refreshes every 30 seconds · All Trainers Combined'
+    '</div>',
     unsafe_allow_html=True
 )
 
 # ─────────────────────────────────────────────
-# LOAD DATA
+# LOAD
 # ─────────────────────────────────────────────
-with st.spinner("Fetching latest scores from Google Sheets..."):
-    df = load_data()
+with st.spinner("⚡ Fetching live data from all trainer sheets..."):
+    df = load_all_data()
 
 last_refresh = time.strftime("%I:%M:%S %p")
 
 # ─────────────────────────────────────────────
 # SUMMARY METRICS
 # ─────────────────────────────────────────────
-m1, m2, m3, m4 = st.columns(4)
+trainers_loaded = df["Trainer_Name"].nunique()
+m1, m2, m3, m4, m5 = st.columns(5)
 metrics = [
-    ("Total Students",  str(len(df))),
-    ("Average Score",   f"{df['Total_Score'].mean():.1f}"),
-    ("Top Score",       f"{df['Total_Score'].max():.1f}"),
-    ("Last Synced",     last_refresh),
+    ("Total Students",    str(len(df))),
+    ("Trainers Active",   str(trainers_loaded)),
+    ("Average Score",     f"{df['Total_Score'].mean():.1f}"),
+    ("Top Score",         f"{df['Total_Score'].max():.1f}"),
+    ("Last Synced",       last_refresh),
 ]
-for col, (label, val) in zip([m1, m2, m3, m4], metrics):
+for col, (label, val) in zip([m1, m2, m3, m4, m5], metrics):
     with col:
+        fsize = "1.1rem" if label == "Last Synced" else "1.8rem"
         st.markdown(
             f'<div class="metric-box">'
             f'<div class="metric-label">{label}</div>'
-            f'<div class="metric-value" style="font-size:{"1.1rem" if label=="Last Synced" else "1.8rem"}">{val}</div>'
+            f'<div class="metric-value" style="font-size:{fsize}">{val}</div>'
             f'</div>',
             unsafe_allow_html=True
         )
 
-st.markdown("<br>", unsafe_allow_html=True)
-
 # ─────────────────────────────────────────────
-# PODIUM — TOP 3  (order: Silver | Gold | Bronze)
+# PODIUM — TOP 3
 # ─────────────────────────────────────────────
-st.markdown("### 🏆 Top 3 Champions")
+st.markdown('<div class="section-title">🏆 Top 3 Champions</div>', unsafe_allow_html=True)
 top3 = df.head(min(3, len(df)))
-display_order = [1, 0, 2] if len(top3) == 3 else list(range(len(top3)))
-pcols = st.columns(3)
+order   = [1, 0, 2] if len(top3) == 3 else list(range(len(top3)))
+pcols   = st.columns(3)
+podium_scores_html = {1:"2.2rem", 2:"1.8rem", 3:"1.8rem"}
 
-for ci, ri in enumerate(display_order):
+for ci, ri in enumerate(order):
     if ri >= len(top3):
         continue
     row  = top3.iloc[ri]
     rank = int(row["Rank"])
+    cidx = int(row["Trainer_Color_Idx"])
+    _, fg = TRAINER_COLORS.get(cidx % 7, ("", "#e2e8f0"))
+    score_color = "#4ade80" if row["Total_Score"] >= 80 else "#fbbf24" if row["Total_Score"] >= 60 else "#f87171"
+
     with pcols[ci]:
         st.markdown(f"""
         <div class="podium-card {podium_cls(rank)}">
-            <div style="font-size:2.2rem">{medal(rank)}</div>
+            <div style="font-size:2.5rem">{medal(rank)}</div>
             <div class="podium-name">{row['Student_Name']}</div>
-            <span class="podium-level">{row['Level']} · ID {int(row['Student_ID'])}</span>
-            <div class="podium-score" style="color:{score_color(row['Total_Score'])}">
+            <div class="podium-trainer" style="color:{fg};border-color:{fg}40">
+                {row['Trainer_Name']}
+            </div>
+            <div class="podium-score" style="color:{score_color};font-size:{podium_scores_html.get(rank,'1.8rem')}">
                 {row['Total_Score']}
             </div>
             <div class="podium-sub">
-                Attendance {row['Attendance']}% &nbsp;|&nbsp; Puzzles {row['Puzzle_Score']:.0f}
+                📅 Attendance {row['Attendance']}% &nbsp;·&nbsp; 🧩 Puzzles {row['Puzzle_Score']:.0f}
             </div>
             <div class="podium-sub">
-                Homework {row['HW_Score']:.0f} &nbsp;|&nbsp; Tournament {row['Tourney_Score']:.0f}
+                📚 Homework {row['HW_Score']:.0f} &nbsp;·&nbsp; 🏆 Tournament {row['Tourney_Score']:.0f}
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-st.markdown("<br>", unsafe_allow_html=True)
-
 # ─────────────────────────────────────────────
-# FULL RANKINGS TABLE
+# FULL LEADERBOARD
 # ─────────────────────────────────────────────
-st.markdown("### 📋 Full Rankings")
+st.markdown('<div class="section-title">📋 Full Rankings — All Students</div>', unsafe_allow_html=True)
 
-# Header row
-h1, h2, h3, h4, h5, h6, h7 = st.columns([0.5, 2.2, 0.9, 1.1, 1, 1, 1])
-headers = ["RANK", "STUDENT", "SCORE", "ATTENDANCE", "PUZZLES", "HOMEWORK", "TOURNAMENT"]
-for col, hdr in zip([h1, h2, h3, h4, h5, h6, h7], headers):
-    col.markdown(
-        f"<span style='font-size:0.72rem;color:#9ca3af;font-weight:700;'>{hdr}</span>",
-        unsafe_allow_html=True
-    )
-
-st.markdown("<hr style='margin:4px 0 8px;border-color:#e9ecef;'>", unsafe_allow_html=True)
+# Column headers
+st.markdown("""
+<div class="lb-header-row">
+    <div>RANK</div>
+    <div>STUDENT · TRAINER</div>
+    <div>SCORE</div>
+    <div>ATTENDANCE</div>
+    <div>PUZZLES</div>
+    <div>HW</div>
+    <div>TOURNEY</div>
+</div>
+""", unsafe_allow_html=True)
 
 for _, row in df.iterrows():
     rank = int(row["Rank"])
-    c1, c2, c3, c4, c5, c6, c7 = st.columns([0.5, 2.2, 0.9, 1.1, 1, 1, 1])
+    cidx = int(row["Trainer_Color_Idx"])
+    bg, fg = TRAINER_COLORS.get(cidx % 7, ("rgba(255,255,255,0.1)", "#e2e8f0"))
+    sc = score_cls(row["Total_Score"])
+    pct = min(100, max(0, int(row["Attendance"])))
+    bar_w = int(pct * 0.7)
 
-    # Rank
-    with c1:
-        label = medal(rank) if rank <= 3 else str(rank)
-        st.markdown(
-            f"<div style='font-size:1rem;font-weight:700;color:#6c757d;"
-            f"padding-top:6px;text-align:center'>{label}</div>",
-            unsafe_allow_html=True
-        )
+    rank_display = medal(rank) if rank <= 3 else f"#{rank}"
 
-    # Name + ID
-    with c2:
-        st.markdown(
-            f"<div style='padding-top:4px'>"
-            f"<span style='font-size:0.95rem;font-weight:600;color:#1a1a2e'>{row['Student_Name']}</span><br>"
-            f"<span style='font-size:0.75rem;color:#9ca3af'>ID {int(row['Student_ID'])} · {row['Level']}</span>"
-            f"</div>",
-            unsafe_allow_html=True
-        )
-
-    # Score pill
-    with c3:
-        color = score_color(row["Total_Score"])
-        st.markdown(
-            f"<div style='background:{color};color:white;border-radius:20px;"
-            f"padding:4px 12px;font-size:0.88rem;font-weight:700;"
-            f"display:inline-block;margin-top:6px'>{row['Total_Score']}</div>",
-            unsafe_allow_html=True
-        )
-
-    # Attendance with mini bar
-    with c4:
-        pct = min(100, max(0, int(row["Attendance"])))
-        bar = pct * 0.9  # scale to px (max ~90px)
-        st.markdown(
-            f"<div style='padding-top:6px'>"
-            f"<span style='font-size:0.85rem;font-weight:600;color:#374151'>{pct}%</span>"
-            f"<div style='background:#f3f4f6;border-radius:4px;height:5px;width:90px;margin-top:3px'>"
-            f"<div style='background:#3b82f6;border-radius:4px;height:5px;width:{bar}px'></div>"
-            f"</div></div>",
-            unsafe_allow_html=True
-        )
-
-    # Puzzle / HW / Tourney
-    for col, key in zip([c5, c6, c7], ["Puzzle_Score", "HW_Score", "Tourney_Score"]):
-        with col:
-            val = row[key]
-            col_c = score_color(val)
-            st.markdown(
-                f"<div style='font-size:0.88rem;font-weight:600;color:{col_c};padding-top:8px'>"
-                f"{val:.0f}<span style='font-size:0.7rem;color:#9ca3af'>/100</span></div>",
-                unsafe_allow_html=True
-            )
-
-    # Thin divider between rows
-    st.markdown("<div style='height:2px'></div>", unsafe_allow_html=True)
-
-st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class="lb-row">
+        <div class="rank-num">{rank_display}</div>
+        <div>
+            <div class="player-name">{row['Student_Name']}</div>
+            <span class="trainer-tag" style="background:{bg};color:{fg};border:1px solid {fg}50">
+                {row['Trainer_Name']}
+            </span>
+        </div>
+        <div>
+            <span class="score-pill {sc}">{row['Total_Score']}</span>
+        </div>
+        <div>
+            <div class="sub-score">{pct}%</div>
+            <div style="background:rgba(255,255,255,0.1);border-radius:4px;height:4px;width:70px;margin-top:3px">
+                <div style="background:#3b82f6;border-radius:4px;height:4px;width:{bar_w}px"></div>
+            </div>
+        </div>
+        <div class="sub-score">{row['Puzzle_Score']:.0f}</div>
+        <div class="sub-score">{row['HW_Score']:.0f}</div>
+        <div class="sub-score">{row['Tourney_Score']:.0f}</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
-# WEEK-BY-WEEK BREAKDOWN (expander)
+# TRAINER LEADERBOARD
 # ─────────────────────────────────────────────
-with st.expander("📊 View Week-by-Week Breakdown"):
-    breakdown = df[["Rank","Student_Name","Level",
-                     "P_W1","P_W2","P_W3","P_W4",
-                     "T_W1","T_W2","T_W3","T_W4",
-                     "H_W1","H_W2","H_W3","H_W4"]].copy()
-    breakdown = breakdown.rename(columns={"Student_Name":"Name"})
-    st.dataframe(breakdown.set_index("Rank"), use_container_width=True)
+st.markdown('<div class="section-title">👨‍🏫 Trainer Leaderboard</div>', unsafe_allow_html=True)
+st.caption("Ranked by average student score per trainer")
+
+trainer_stats = (
+    df.groupby(["Trainer_Name", "Trainer_Color_Idx"])
+    .agg(
+        Students      = ("Student_Name", "count"),
+        Avg_Score     = ("Total_Score",  "mean"),
+        Avg_Attend    = ("Attendance",   "mean"),
+        Avg_Puzzle    = ("Puzzle_Score", "mean"),
+        Top_Student   = ("Student_Name", lambda x: x.iloc[df.loc[x.index, "Total_Score"].argmax()]),
+    )
+    .reset_index()
+)
+trainer_stats["Avg_Score"] = trainer_stats["Avg_Score"].round(1)
+trainer_stats = trainer_stats.sort_values("Avg_Score", ascending=False).reset_index(drop=True)
+
+trainer_medals = ["🥇","🥈","🥉"]
+
+for i, row in trainer_stats.iterrows():
+    cidx  = int(row["Trainer_Color_Idx"])
+    bg, fg = TRAINER_COLORS.get(cidx % 7, ("rgba(255,255,255,0.06)", "#e2e8f0"))
+    tm    = trainer_medals[i] if i < 3 else f"#{i+1}"
+    st.markdown(f"""
+    <div class="trainer-card" style="border-left: 3px solid {fg}">
+        <div class="trainer-rank">{tm}</div>
+        <div style="flex:1">
+            <div class="trainer-name" style="color:{fg}">{row['Trainer_Name']}</div>
+            <div class="trainer-meta">
+                {int(row['Students'])} students &nbsp;·&nbsp;
+                Attendance {row['Avg_Attend']:.0f}% &nbsp;·&nbsp;
+                Top student: {row['Top_Student']}
+            </div>
+        </div>
+        <div class="trainer-score-pill">{row['Avg_Score']}</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
 # FORMULA EXPLAINER
 # ─────────────────────────────────────────────
-with st.expander("ℹ️ How is the Total Score calculated?"):
+with st.expander("ℹ️ How is the score calculated?"):
     st.markdown("""
     **Total Score = Equal average of 4 components (25% each)**
 
@@ -321,17 +624,17 @@ with st.expander("ℹ️ How is the Total Score calculated?"):
     | **Homework** | Mean(H_W1–H_W4) ÷ 5 × 100 | 25% |
     | **Tournament** | Mean(T_W1–T_W4) ÷ 5 × 100 | 25% |
 
-    > All weekly scores are assumed out of **5**. Change `PUZZLE_MAX`, `TOURNEY_MAX`, `HW_MAX` at the top of the file if different.
+    **Trainer Leaderboard** ranks trainers by their students' average Total Score.
 
-    **Score colour coding:** 🟢 ≥80 · 🟡 60–79 · 🔴 <60
+    **Score colours:** 🟢 ≥80 · 🟡 60–79 · 🔴 <60
     """)
 
 # ─────────────────────────────────────────────
-# FOOTER + AUTO-REFRESH
+# FOOTER + AUTO REFRESH
 # ─────────────────────────────────────────────
 st.markdown(
-    f"<div style='text-align:center;font-size:0.75rem;color:#d1d5db;margin-top:1rem'>"
-    f"ChessSensei · Live data from Google Sheets · Synced at {last_refresh}</div>",
+    f"<div style='text-align:center;font-size:0.72rem;color:#4a5568;margin-top:2rem'>"
+    f"♟ Chessensei · Live from Google Sheets · {last_refresh}</div>",
     unsafe_allow_html=True
 )
 
