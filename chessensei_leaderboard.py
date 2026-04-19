@@ -316,21 +316,49 @@ SCOPES = [
 ]
 
 def get_gspread_client():
-    """
-    Loads service account from Streamlit secrets as raw JSON string.
-    Paste the full JSON in secrets under [gcp_service_account] json_key = '''...'''
-    Falls back to local service_account.json for local testing.
-    """
-    try:
-        # ── Streamlit Cloud: read raw JSON string from secrets ──
-        import json
-        json_str = st.secrets["gcp_service_account"]["json_key"]
-        creds_dict = json.loads(json_str)
-        creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
-    except Exception:
-        # ── Local fallback: read JSON file directly ──
-        SERVICE_ACCOUNT_FILE = "service_account.json"
-        creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    creds_dict = {
+        "type": "service_account",
+        "project_id": "ancient-ensign-470309-d2",
+        "private_key_id": "914a1d57bd6e0b1ec9dcc888dab7c7a8a6b3175f",
+        "private_key": (
+            "-----BEGIN PRIVATE KEY-----\n"
+            "MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCpSEORnwq5z3s+\n"
+            "vyPDt/uDC0O6ATVji5Wn+oOEwWYoxMBvLzklTf11vodq6Y7iMVDIxLNMPCbwl93s\n"
+            "YA87JrC0JOY9ARcJx0oMJKo2XZItBO1EJQxgmwjXUhc5sWbhcAjuxE0bRsBVi6dQ\n"
+            "xZEWNDI8DMLcm1VusChwFbIpn1s3CaT86JysFxqmINtwpTHDIcTNPzdxt/NX2K+w\n"
+            "NJDqrgsl7hAS/7flZE3HtDswZWZvv3A50Bcq2sUEZxemUZfmVIMrxVXgdm8b8QVW\n"
+            "JR9RWRC6rlVE/Ca0fOA54RyWDfWtS+bQgi50hSit6ExPPkO46/4IvdgYbjODiTgl\n"
+            "ng+cU5NZAgMBAAECggEAB+YZUQgsxfLKe2kL0CwbjkfORzWbOiPfPdFQpbcofyp/\n"
+            "GDEJ55W2B/J1+yUex6spa9TR0PLVllBfyJHK5CWwBRfbrmkInCoyaFKlppfDJFqg\n"
+            "f5eC9lcFmJZ6AvUmKcrCf/Gk72rjupojmn89f927olWuGgEdgWay3FgG0i5fYTf8\n"
+            "iE7ck7igyvh9B4Tlw9qDcHXclx+s9CTeHrw6LhzOfUblMIeMp4IcWfPSiOkczbSF\n"
+            "NeeudJziWIIDwmYjzb3/yc22ykewBNr2CSjqfdOut/SCPVBi67K2zr5Ef2v5drMH\n"
+            "zisjnf34+4Ip0pQ/MxswVX7TL8fD+SlADKbS3z4KoQKBgQDboYKjq5HM0VJusOP0\n"
+            "MApY6yio9uxTGYkHQsgBJjnqZYclxjwgloiI0xtVna/u/MjmBgNaYL9IJZGMbkhU\n"
+            "dr5Jns89GkLaJox/fk9Gcvq84mFGbkjUNar8fsYnjm8j5Cw3KASKY9eXsJbw2Waw\n"
+            "7ABk4TF+lf3SzueklheVcsoJXQKBgQDFUGYQ5UvVJecJdm1AMMl1WFocNcrIRjIA\n"
+            "MZ9iMrUKTxqHOsmE+Du35AHVmxwf+3mPhkSWQYo++OxKuUzjV1N1rKWuShiZxMGK\n"
+            "BMtUCOGL9taAXu+TyTBx7JMRWfTN4NuAAfySDjNttI6xSiMaTiS9GDcSIkEu5sH0\n"
+            "2HOY9rrGLQKBgDruhnBGTBPqIrVCz5epAE3Fo55ayyStGGCTYbk1OZsUbQQMwft4\n"
+            "iOA1zQLXEesNdxaJjILGrOy97+T/fnbzebGlZDQgBMomR9K54KmllnPyRmmwk+gl\n"
+            "EmE33xGkHVxDED4ohbdgfOvd3VJ48x4L5TssVayCsJ3NGMjH4UIfj+idAoGAUStR\n"
+            "0YGCQJzm/i2Jo+5t8af26cP3N4wo5YuEVZEmiKch8p9sZxb2+h8B4i181GtPBovl\n"
+            "iypLBLzB97titeMmojHztk8k75zRQUXXnypIHpvcgdKMG++XzkXT+j9XRZpKsc4f\n"
+            "aLYO0gKE8MnexuN+mYtsnDkbN4AWKfMhGrvk+cECgYAzVfHsSyqmqbjpWduERmFn\n"
+            "ehkJeSpX6ysCKStdSdscWCO8Jxqj5AWDp/Y6EZRo9t2+FO33qQm9dfwWCiaWwpFM\n"
+            "0PALOptkaKjTAfnwY3DTkS3eHRbnELmQIPV1A6WE1LwixsVIXZb0vxPF8cTS4gGm\n"
+            "5rC1gJLGcyVR0jXHQBx3Zw==\n"
+            "-----END PRIVATE KEY-----\n"
+        ),
+        "client_email": "sheetsbot@ancient-ensign-470309-d2.iam.gserviceaccount.com",
+        "client_id": "108020400728893993467",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/sheetsbot%40ancient-ensign-470309-d2.iam.gserviceaccount.com",
+        "universe_domain": "googleapis.com"
+    }
+    creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
     return gspread.authorize(creds)
 
 
