@@ -309,13 +309,16 @@ st.markdown(f"""
 # TRAINER COLOURS
 # ─────────────────────────────────────────────
 TRAINER_COLORS = {
-    0: ("rgba(99,102,241,0.25)",  "#818cf8"),
-    1: ("rgba(236,72,153,0.25)",  "#f472b6"),
-    2: ("rgba(20,184,166,0.25)",  "#2dd4bf"),
-    3: ("rgba(245,158,11,0.25)",  "#fbbf24"),
-    4: ("rgba(239,68,68,0.25)",   "#f87171"),
-    5: ("rgba(34,197,94,0.25)",   "#4ade80"),
-    6: ("rgba(168,85,247,0.25)",  "#c084fc"),
+    0: ("rgba(99,102,241,0.25)",  "#818cf8"),  # Indigo
+    1: ("rgba(236,72,153,0.25)",  "#f472b6"),  # Pink
+    2: ("rgba(20,184,166,0.25)",  "#2dd4bf"),  # Teal
+    3: ("rgba(245,158,11,0.25)",  "#fbbf24"),  # Amber
+    4: ("rgba(239,68,68,0.25)",   "#f87171"),  # Red
+    5: ("rgba(34,197,94,0.25)",   "#4ade80"),  # Green
+    6: ("rgba(168,85,247,0.25)",  "#c084fc"),  # Purple
+    7: ("rgba(14,165,233,0.25)",  "#38bdf8"),  # Sky Blue
+    8: ("rgba(249,115,22,0.25)",  "#fb923c"),  # Orange
+    9: ("rgba(20,184,166,0.25)",  "#5eead4"),  # Cyan
 }
 
 
@@ -325,13 +328,16 @@ TRAINER_COLORS = {
 SHEET_NAME = "Quality_April_26"
 
 TRAINER_SHEETS = {
-    "Sheet 1": "1xZuOsdeyY_3q30m7RkJPTEbs5uJZJt7kFtCbAM_0KuI",
-    "Sheet 2": "1ZmFeO3Qw_9U0RYatrN24EgyFLcn8jnXxf7MyhdaFxkU",   # ← paste Sheet ID or leave blank
-    "Sheet 3": "",
-    "Sheet 4": "",
-    "Sheet 5": "",
-    "Sheet 6": "",
-    "Sheet 7": "",
+    "Sheet 1": "1xZuOsdeyY_3q30m7RkJPTEbs5uJZJt7kFtCbAM_0KuI",   #Santosh
+    "Sheet 2": "1ZmFeO3Qw_9U0RYatrN24EgyFLcn8jnXxf7MyhdaFxkU",   # Karthick ← paste Sheet ID or leave blank
+    "Sheet 3": "1G7YWQTCaKyP3vrOwo_K94SHjHVTTToD3INJhtk8es-M",  #Rohan
+    "Sheet 4": "1YAeGYFkYyyfmTUq5XY4QHMsNustd76LRSzUxRIF_2ZY", #Vaishak
+    "Sheet 5": "1rEC1sRtPVisf8wdNgAhq6iFhZeIV6ZVXxG6KMXSYV0I", #Chandru
+    "Sheet 6": "1CnkAIeIazUPlkvk3ubHK0E00skVmuQP90gcLrKF_414", #Darshan
+    "Sheet 7": "1lr1tWzVsoCKzqOc2THyl2KPiHi_lFUaJnGR-BaGgMJI", #Nikhil
+    "Sheet 8": "1Ih_4U-s5Gsg2GweVN3NKWAJZygPtMJhws8ZlgEliNUQ", #Nitish
+    "Sheet 9": "1EcrXnW9NVK_R1AQ8TU_h8H6GX6fyAPkXa6C7UoJLAMI", #Sashank
+    "Sheet 10": "1djRs8tTDBE0p06VR7uWJUZpSQwQrtjZ_HEVAeAVuO0U", #Sashank M
 }
 
 PUZZLE_MAX  = 5
@@ -461,7 +467,7 @@ all_trainers = sorted(df["Trainer_Name"].dropna().unique().tolist())
 # Assign colour index per trainer name
 trainer_color_map = {}
 for i, t in enumerate(all_trainers):
-    trainer_color_map[t] = i % 7
+    trainer_color_map[t] = i % 10
 
 
 # ─────────────────────────────────────────────
