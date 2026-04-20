@@ -247,7 +247,10 @@ def safe_int(val):
 with st.spinner("⚡ Fetching live scores..."):
     df = load_all_data()
 
-last_refresh = time.strftime("%I:%M:%S %p")
+from datetime import datetime
+import pytz
+ist = pytz.timezone("Asia/Kolkata")
+last_refresh = datetime.now(ist).strftime("%I:%M:%S %p IST")
 all_trainers = sorted(df["Trainer_Name"].dropna().unique().tolist())
 
 trainer_color_map = {}
