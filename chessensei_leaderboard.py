@@ -263,7 +263,7 @@ st.markdown(f"""
         <div class="main-title">♟ Chessensei Student Leaderboard</div>
         <div class="main-sub">
             <span class="live-badge">● LIVE</span>
-            &nbsp;&nbsp;Auto-refreshes every 30 seconds · All Trainers Combined
+            &nbsp;&nbsp;Auto-refreshes every 60 seconds · All Trainers Combined
         </div>
     </div>
     <div class="logo-wrap" style="flex:1;justify-content:flex-end">
@@ -509,5 +509,5 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-time.sleep(30)
+time.sleep(60)
 st.rerun()
