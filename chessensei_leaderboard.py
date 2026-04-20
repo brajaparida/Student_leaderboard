@@ -411,6 +411,8 @@ def load_all_data():
 
     df_all = pd.concat(all_dfs, ignore_index=True)
 
+    df_all["Total_Completed"] = pd.to_numeric(df_all["Total_Completed"], errors="coerce").fillna(0)
+    df_all["Total_Scheduled"] = pd.to_numeric(df_all["Total_Scheduled"], errors="coerce").fillna(1)
     df_all["Attendance"]    = (df_all["Total_Completed"] / df_all["Total_Scheduled"] * 100).round(1)
     df_all["Puzzle_Score"]  = (df_all[["P_W1","P_W2","P_W3","P_W4"]].mean(axis=1) / PUZZLE_MAX  * 100).round(1)
     df_all["Tourney_Score"] = (df_all[["T_W1","T_W2","T_W3","T_W4"]].mean(axis=1) / TOURNEY_MAX * 100).round(1)
@@ -692,7 +694,7 @@ for _, row in filtered.iterrows():
     cidx = trainer_color_map.get(row["Trainer_Name"], 0)
     bg, fg = TRAINER_COLORS.get(cidx, ("rgba(255,255,255,0.1)", "#e2e8f0"))
     sc   = score_cls(row["Total_Score"])
-    pct  = min(100, max(0, int(row["Attendance"])))
+    pct  = min(100, max(0, int(float(row["Attendance"] or 0))))
     bar_w = int(pct * 0.7)
     rank_display = medal(rank) if rank <= 3 else f"#{rank}"
 
