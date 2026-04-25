@@ -125,11 +125,11 @@ TRAINER_SHEETS = {
     "Sheet 3":  "1G7YWQTCaKyP3vrOwo_K94SHjHVTTToD3INJhtk8es-M",
     "Sheet 4":  "1YAeGYFkYyyfmTUq5XY4QHMsNustd76LRSzUxRIF_2ZY",
     "Sheet 5":  "1rEC1sRtPVisf8wdNgAhq6iFhZeIV6ZVXxG6KMXSYV0I",
-    "Sheet 6":  "1CnkAIeIazUPlkvk3ubHK0E00skVmuQP90gcLrKF_414",
+    "Sheet 6":  "1CnkAIeIazUPlkvk3ubHK0E00skVmuQP90gcLrKF_414", #Darshan
     "Sheet 7":  "1lr1tWzVsoCKzqOc2THyl2KPiHi_lFUaJnGR-BaGgMJI",
     "Sheet 8":  "1Ih_4U-s5Gsg2GweVN3NKWAJZygPtMJhws8ZlgEliNUQ",
     "Sheet 9":  "1EcrXnW9NVK_R1AQ8TU_h8H6GX6fyAPkXa6C7UoJLAMI",
-    "Sheet 10": "1djRs8tTDBE0p06VR7uWJUZpSQwQrtjZ_HEVAeAVuO0U",
+    "Sheet 10": "1djRs8tTDBE0p06VR7uWJUZpSQwQrtjZ_HEVAeAVuO0U", #Sashank
 }
 
 PUZZLE_MAX  = 5
