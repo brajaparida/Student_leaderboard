@@ -120,16 +120,16 @@ TRAINER_COLORS = {
 SHEET_NAME = "Quality_April_26"
 
 TRAINER_SHEETS = {
-    "Sheet 1":  "1xZuOsdeyY_3q30m7RkJPTEbs5uJZJt7kFtCbAM_0KuI",
-    "Sheet 2":  "1ZmFeO3Qw_9U0RYatrN24EgyFLcn8jnXxf7MyhdaFxkU",
-    "Sheet 3":  "1G7YWQTCaKyP3vrOwo_K94SHjHVTTToD3INJhtk8es-M",
-    "Sheet 4":  "1YAeGYFkYyyfmTUq5XY4QHMsNustd76LRSzUxRIF_2ZY",
-    "Sheet 5":  "1rEC1sRtPVisf8wdNgAhq6iFhZeIV6ZVXxG6KMXSYV0I",
+    "Sheet 1":  "1xZuOsdeyY_3q30m7RkJPTEbs5uJZJt7kFtCbAM_0KuI",#santosh
+    "Sheet 2":  "1ZmFeO3Qw_9U0RYatrN24EgyFLcn8jnXxf7MyhdaFxkU",#Karthick
+    "Sheet 3":  "1G7YWQTCaKyP3vrOwo_K94SHjHVTTToD3INJhtk8es-M",#Rohan
+    "Sheet 4":  "1YAeGYFkYyyfmTUq5XY4QHMsNustd76LRSzUxRIF_2ZY",#Alangarvaishak
+    "Sheet 5":  "1rEC1sRtPVisf8wdNgAhq6iFhZeIV6ZVXxG6KMXSYV0I",#Chandru
     "Sheet 6":  "1CnkAIeIazUPlkvk3ubHK0E00skVmuQP90gcLrKF_414", #Darshan
-    "Sheet 7":  "1lr1tWzVsoCKzqOc2THyl2KPiHi_lFUaJnGR-BaGgMJI",
-    "Sheet 8":  "1Ih_4U-s5Gsg2GweVN3NKWAJZygPtMJhws8ZlgEliNUQ",
-    "Sheet 9":  "1EcrXnW9NVK_R1AQ8TU_h8H6GX6fyAPkXa6C7UoJLAMI",
-    "Sheet 10": "1djRs8tTDBE0p06VR7uWJUZpSQwQrtjZ_HEVAeAVuO0U", #Sashank
+    "Sheet 7":  "1lr1tWzVsoCKzqOc2THyl2KPiHi_lFUaJnGR-BaGgMJI",#Nikhil
+    "Sheet 8":  "1Ih_4U-s5Gsg2GweVN3NKWAJZygPtMJhws8ZlgEliNUQ",#Nitish
+    "Sheet 9":  "1EcrXnW9NVK_R1AQ8TU_h8H6GX6fyAPkXa6C7UoJLAMI",#Sashank
+    "Sheet 10": "1djRs8tTDBE0p06VR7uWJUZpSQwQrtjZ_HEVAeAVuO0U", #Sashank M
 }
 
 PUZZLE_MAX  = 5
